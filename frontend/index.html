@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Application Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Job Application Tracker</h1>
+            <p class="subtitle">AI-powered tracking with local Ollama</p>
+        </header>
+
+        <!-- Stats Dashboard -->
+        <section class="stats-section">
+            <div class="stat-card">
+                <div class="stat-number" id="total-apps">0</div>
+                <div class="stat-label">Total Applications</div>
+            </div>
+            <div class="stat-card stat-applied">
+                <div class="stat-number" id="applied-count">0</div>
+                <div class="stat-label">Applied</div>
+            </div>
+            <div class="stat-card stat-interview">
+                <div class="stat-number" id="interview-count">0</div>
+                <div class="stat-label">Interviews</div>
+            </div>
+            <div class="stat-card stat-offer">
+                <div class="stat-number" id="offer-count">0</div>
+                <div class="stat-label">Offers</div>
+            </div>
+            <div class="stat-card stat-rejection">
+                <div class="stat-number" id="rejection-count">0</div>
+                <div class="stat-label">Rejections</div>
+            </div>
+            <div class="stat-card stat-ghosted">
+                <div class="stat-number" id="ghosted-count">0</div>
+                <div class="stat-label">Potentially Ghosted</div>
+            </div>
+        </section>
+
+        <!-- Actions -->
+        <section class="actions-section">
+            <button class="btn btn-primary" id="sync-btn">
+                <span id="sync-text">🔄 Sync Emails</span>
+                <span id="sync-loader" class="loader hidden"></span>
+            </button>
+            <button class="btn btn-secondary" id="refresh-btn">↻ Refresh</button>
+            
+            <div class="filter-section">
+                <label>Filter:</label>
+                <select id="status-filter">
+                    <option value="">All</option>
+                    <option value="APPLIED">Applied</option>
+                    <option value="INTERVIEW">Interview</option>
+                    <option value="OFFER">Offer</option>
+                    <option value="REJECTION">Rejection</option>
+                    <option value="GHOSTED">Ghosted</option>
+                    <option value="OTHER">Other</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Sync Status -->
+        <div id="sync-status" class="hidden"></div>
+
+        <!-- Applications List -->
+        <section class="applications-section">
+            <h2>Applications</h2>
+            <div id="applications-list">
+                <div class="loading">Loading applications...</div>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
