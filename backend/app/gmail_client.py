@@ -1,6 +1,9 @@
 """Gmail API client for fetching and processing emails."""
 import os
+import re
+import html
 import base64
+from html.parser import HTMLParser
 from typing import List, Dict, Optional
 from datetime import datetime
 from google.auth.transport.requests import Request
@@ -152,31 +155,96 @@ class GmailClient:
         return ''
     
     def _get_message_body(self, payload: Dict) -> str:
-        """Extract message body from payload."""
-        body = ''
-        
-        if 'parts' in payload:
-            # Multipart message
-            for part in payload['parts']:
-                if part['mimeType'] == 'text/plain':
-                    if 'data' in part['body']:
-                        body = base64.urlsafe_b64decode(
-                            part['body']['data']
-                        ).decode('utf-8')
-                        break
-                elif part['mimeType'] == 'text/html' and not body:
-                    if 'data' in part['body']:
-                        body = base64.urlsafe_b64decode(
-                            part['body']['data']
-                        ).decode('utf-8')
-        else:
-            # Simple message
-            if 'data' in payload.get('body', {}):
-                body = base64.urlsafe_b64decode(
-                    payload['body']['data']
-                ).decode('utf-8')
-        
-        return body
+        """Extract message body from payload, preferring HTML for richer content."""
+        html_body = ''
+        plain_body = ''
+
+        def extract_parts(p):
+            nonlocal html_body, plain_body
+            mime = p.get('mimeType', '')
+            if mime == 'text/plain' and not plain_body:
+                data = p.get('body', {}).get('data', '')
+                if data:
+                    plain_body = base64.urlsafe_b64decode(data).decode('utf-8', errors='replace')
+            elif mime == 'text/html' and not html_body:
+                data = p.get('body', {}).get('data', '')
+                if data:
+                    html_body = base64.urlsafe_b64decode(data).decode('utf-8', errors='replace')
+            for sub in p.get('parts', []):
+                extract_parts(sub)
+
+        extract_parts(payload)
+
+        if html_body:
+            return self._html_to_clean_text(html_body)
+        return self._clean_plain_text(plain_body)
+
+    def _html_to_clean_text(self, raw_html: str) -> str:
+        """Convert HTML email to clean readable text."""
+        # Drop <style>, <script>, <head> blocks entirely
+        raw_html = re.sub(r'<(style|script|head)[^>]*>.*?</\1>', '', raw_html, flags=re.DOTALL | re.IGNORECASE)
+        # Block-level tags → newline
+        raw_html = re.sub(r'<(br|tr|li|p|div|h[1-6]|blockquote|hr)\b[^>]*/?>', '\n', raw_html, flags=re.IGNORECASE)
+        raw_html = re.sub(r'</(p|div|h[1-6]|blockquote|ul|ol|table)>', '\n', raw_html, flags=re.IGNORECASE)
+        # Strip remaining tags
+        raw_html = re.sub(r'<[^>]+>', '', raw_html)
+        # Unescape HTML entities
+        text = html.unescape(raw_html)
+        return self._clean_plain_text(text)
+
+    def _clean_plain_text(self, text: str) -> str:
+        """Remove tracking links, footers, boilerplate, and junk from plain text."""
+        # Strip invisible Unicode spacer characters used as email spacers
+        # (U+034F ͏, soft hyphen, zero-width spaces, BOM, etc.)
+        text = re.sub(r'[\u034f\u00ad\u200b\u200c\u200d\u2060\ufeff]+', '', text)
+
+        lines = text.splitlines()
+        cleaned = []
+        skip_rest = False
+
+        for line in lines:
+            stripped = line.strip()
+
+            # Once we hit LinkedIn/Glassdoor boilerplate section headers, skip everything after
+            if re.search(
+                r'^(Top jobs (looking for|for) your|Search for more related jobs'
+                r'|Get the new LinkedIn|Also available on mobile'
+                r'|You are receiving)',
+                stripped, re.IGNORECASE
+            ):
+                skip_rest = True
+
+            if skip_rest:
+                continue
+
+            # Skip lines that are only invisible/whitespace characters
+            visible = re.sub(r'[\u034f\u00ad\u200b\u200c\u200d\u2060\ufeff\s]', '', stripped)
+            if stripped and not visible:
+                continue
+
+            # Skip bare URLs (tracking/unsubscribe links)
+            if re.match(r'^https?://\S+$', stripped):
+                continue
+
+            # Skip "See more/all jobs" boilerplate
+            if re.match(r'^See (more|all) jobs', stripped, re.IGNORECASE):
+                continue
+
+            # Skip common footer patterns
+            if re.search(
+                r'unsubscribe|opt.?out|privacy.?policy|terms.of.service'
+                r'|you.?re receiving|learn why we included|intended for'
+                r'|linkedin corporation|© \d{4}|all rights reserved'
+                r'|do not reply|noreply|no-reply',
+                stripped, re.IGNORECASE
+            ):
+                continue
+
+            cleaned.append(line)
+
+        # Collapse 3+ consecutive blank lines to 2
+        result = re.sub(r'\n{3,}', '\n\n', '\n'.join(cleaned))
+        return result.strip()
     
     def get_thread_messages(self, thread_id: str) -> List[Dict]:
         """Get all messages in a thread."""

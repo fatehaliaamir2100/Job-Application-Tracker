@@ -28,4 +28,14 @@ def get_db():
 
 def init_db():
     """Initialize database tables."""
+    from sqlalchemy import text
     Base.metadata.create_all(bind=engine)
+    # Add new columns to existing databases without needing migrations
+    new_columns = [('last_email_from', 'VARCHAR'), ('last_email_body', 'TEXT')]
+    with engine.connect() as conn:
+        for col, coltype in new_columns:
+            try:
+                conn.execute(text(f"ALTER TABLE job_applications ADD COLUMN {col} {coltype}"))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists

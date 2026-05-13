@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.git/
+.gitignore
+
+# Sensitive files — mounted via volume at runtime
+credentials.json
+token.json
+flow_*.json
+
+# Database — persisted via volume
+job_tracker.db
+
+# Dev files
+*.bat
+*.md
+scripts/
+data/

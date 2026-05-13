@@ -1,0 +1,39 @@
+services:
+  app:
+    build: .
+    container_name: job-tracker
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persistent data: SQLite DB, credentials.json, token.json
+      - ./data:/data
+    environment:
+      - DATABASE_URL=sqlite:////data/job_tracker.db
+      - GMAIL_CREDENTIALS_FILE=/data/credentials.json
+      - GMAIL_TOKEN_FILE=/data/token.json
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:1.5b}
+      - SYNC_INTERVAL_MINUTES=${SYNC_INTERVAL_MINUTES:-60}
+      - MAX_EMAILS_PER_SYNC=${MAX_EMAILS_PER_SYNC:-50}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: job-tracker-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  ollama-models:

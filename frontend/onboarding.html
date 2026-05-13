@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup — Job Application Tracker</title>
+    <style>
+        :root {
+            --bg: #0d0d0d;
+            --surface: #141414;
+            --surface-2: #1c1c1c;
+            --border: #242424;
+            --border-focus: #3c3c3c;
+            --text-primary: #ebebeb;
+            --text-secondary: #787878;
+            --text-muted: #383838;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 520px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 40px;
+        }
+
+        /* Header */
+        .brand {
+            margin-bottom: 32px;
+        }
+
+        .brand h1 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: -0.01em;
+        }
+
+        .brand p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 3px;
+        }
+
+        /* Step dots */
+        .step-indicator {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 32px;
+        }
+
+        .step-dot {
+            height: 3px;
+            flex: 1;
+            background: var(--border-focus);
+            border-radius: 2px;
+            transition: background 0.3s;
+        }
+
+        .step-dot.active {
+            background: #fff;
+        }
+
+        /* Steps */
+        .step { display: none; }
+        .step.active {
+            display: block;
+            animation: fadeUp 0.2s ease-out;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .step-label {
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: -0.02em;
+            margin-bottom: 10px;
+        }
+
+        .lead {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.65;
+            margin-bottom: 24px;
+        }
+
+        /* Feature list */
+        .feature-list {
+            list-style: none;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 28px;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 16px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .feature-list li:last-child { border-bottom: none; }
+
+        .feature-list .icon {
+            font-size: 0.75rem;
+            color: #72b872;
+            flex-shrink: 0;
+        }
+
+        /* Instructions */
+        .instruction-list {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .instruction-list li {
+            display: flex;
+            gap: 14px;
+            padding: 12px 16px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+            line-height: 1.55;
+            list-style: none;
+        }
+
+        .instruction-list li:last-child { border-bottom: none; }
+
+        .instruction-list .num {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            padding-top: 1px;
+            flex-shrink: 0;
+        }
+
+        .instruction-list a {
+            color: var(--text-primary);
+            text-decoration: underline;
+            text-decoration-color: var(--border-focus);
+        }
+
+        .instruction-list a:hover {
+            text-decoration-color: var(--text-secondary);
+        }
+
+        /* Code tag */
+        .code-tag {
+            display: inline-block;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        /* Upload area */
+        .upload-area {
+            border: 1px dashed var(--border-focus);
+            border-radius: 8px;
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            margin-bottom: 16px;
+            background: transparent;
+        }
+
+        .upload-area:hover {
+            border-color: #555;
+            background: var(--surface-2);
+        }
+
+        .upload-area.drag-over {
+            border-color: #fff;
+            background: var(--surface-2);
+        }
+
+        .upload-icon {
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-area p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .upload-area .hint {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        input[type="file"] { display: none; }
+
+        .file-name {
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: #72b872;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            margin-bottom: 14px;
+            border: 1px solid;
+        }
+
+        .alert-error {
+            background: rgba(200,80,80,0.07);
+            border-color: rgba(200,80,80,0.2);
+            color: #c07070;
+        }
+
+        .alert-success {
+            background: rgba(80,160,80,0.07);
+            border-color: rgba(80,160,80,0.2);
+            color: #72b872;
+        }
+
+        /* Buttons */
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 20px;
+            border-radius: 7px;
+            font-size: 0.84rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+            border: 1px solid;
+        }
+
+        .btn-primary {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover { background: #e0e0e0; border-color: #e0e0e0; }
+
+        .btn-primary:disabled {
+            background: var(--surface-2);
+            color: var(--text-muted);
+            border-color: var(--border);
+            cursor: not-allowed;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border-color: var(--border);
+            margin-top: 8px;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--border-focus);
+            color: var(--text-primary);
+        }
+
+        .btn-stack { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
+
+        /* Spinner */
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="brand">
+            <h1>Job Application Tracker</h1>
+            <p>AI-powered &middot; local &middot; private</p>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+        </div>
+
+        <!-- Step 1: Welcome -->
+        <div class="step active" id="step1">
+            <div class="step-label">Step 1 of 3</div>
+            <h2>Welcome</h2>
+            <p class="lead">To track your job applications, we'll connect to your Gmail. Here's what you should know:</p>
+
+            <ul class="feature-list">
+                <li><span class="icon">✓</span> Runs 100% locally on your machine</li>
+                <li><span class="icon">✓</span> Uses Ollama for local AI — no cloud</li>
+                <li><span class="icon">✓</span> Only reads job-related emails</li>
+                <li><span class="icon">✓</span> Nothing is sent to external servers</li>
+                <li><span class="icon">✓</span> You own and control all your data</li>
+            </ul>
+
+            <p class="lead" style="margin-bottom: 20px;">Setup takes about 2 minutes.</p>
+
+            <button class="btn btn-primary" onclick="nextStep()">Get Started</button>
+        </div>
+
+        <!-- Step 2: Google Cloud Setup -->
+        <div class="step" id="step2">
+            <div class="step-label">Step 2 of 3</div>
+            <h2>Get Gmail credentials</h2>
+            <p class="lead">Create a Google Cloud OAuth client so this app can read your Gmail.</p>
+
+            <ol class="instruction-list">
+                <li>
+                    <span class="num">01</span>
+                    <span>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a> and create a new project</span>
+                </li>
+                <li>
+                    <span class="num">02</span>
+                    <span>Enable the <strong style="color:var(--text-primary)">Gmail API</strong> for your project</span>
+                </li>
+                <li>
+                    <span class="num">03</span>
+                    <span>Go to <strong style="color:var(--text-primary)">Credentials → Create Credentials → OAuth client ID</strong></span>
+                </li>
+                <li>
+                    <span class="num">04</span>
+                    <span>Choose <strong style="color:var(--text-primary)">Desktop app</strong> as the application type</span>
+                </li>
+                <li>
+                    <span class="num">05</span>
+                    <span>Download the JSON file — it will be named <span class="code-tag">credentials.json</span></span>
+                </li>
+                <li>
+                    <span class="num">06</span>
+                    <span>Under <strong style="color:var(--text-primary)">OAuth consent screen</strong>, add your Gmail address as a test user</span>
+                </li>
+            </ol>
+
+            <div class="btn-stack">
+                <button class="btn btn-primary" onclick="nextStep()">I have my credentials</button>
+                <button class="btn btn-ghost" onclick="prevStep()">Back</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Upload Credentials -->
+        <div class="step" id="step3">
+            <div class="step-label">Step 3 of 3</div>
+            <h2>Connect Gmail</h2>
+            <p class="lead">Upload your <span class="code-tag">credentials.json</span> file to authorise access.</p>
+
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">↑</div>
+                <p>Drop <span class="code-tag">credentials.json</span> here</p>
+                <p class="hint">or click to browse</p>
+                <input type="file" id="fileInput" accept=".json" onchange="handleFileSelect(event)">
+                <div class="file-name" id="fileName"></div>
+            </div>
+
+            <div id="uploadError" class="alert alert-error" style="display:none;"></div>
+            <div id="uploadSuccess" class="alert alert-success" style="display:none;"></div>
+
+            <div class="btn-stack">
+                <button class="btn btn-primary" id="connectBtn" onclick="connectGmail()" disabled>
+                    Connect to Gmail
+                </button>
+                <button class="btn btn-ghost" onclick="prevStep()">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1;
+        let uploadedFile = null;
+
+        function nextStep() {
+            document.getElementById('step' + currentStep).classList.remove('active');
+            currentStep++;
+            document.getElementById('step' + currentStep).classList.add('active');
+            updateDots();
+        }
+
+        function prevStep() {
+            document.getElementById('step' + currentStep).classList.remove('active');
+            currentStep--;
+            document.getElementById('step' + currentStep).classList.add('active');
+            updateDots();
+        }
+
+        function updateDots() {
+            document.querySelectorAll('.step-dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i < currentStep);
+            });
+        }
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            processFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFileSelect(e) { processFile(e.target.files[0]); }
+
+        function processFile(file) {
+            if (!file) return;
+            if (!file.name.endsWith('.json')) { showError('Please upload a .json file'); return; }
+            uploadedFile = file;
+            document.getElementById('fileName').textContent = '✓ ' + file.name;
+            document.getElementById('connectBtn').disabled = false;
+            hideMessages();
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('uploadError');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('uploadSuccess').style.display = 'none';
+        }
+
+        function hideMessages() {
+            document.getElementById('uploadError').style.display = 'none';
+            document.getElementById('uploadSuccess').style.display = 'none';
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('uploadSuccess');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('uploadError').style.display = 'none';
+        }
+
+        async function connectGmail() {
+            if (!uploadedFile) { showError('Please select a credentials file first'); return; }
+
+            const btn = document.getElementById('connectBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Uploading...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', uploadedFile);
+
+                const uploadRes = await fetch('/api/upload-credentials', { method: 'POST', body: formData });
+                if (!uploadRes.ok) throw new Error('Failed to upload credentials');
+
+                showSuccess('Credentials uploaded — generating auth link...');
+                btn.innerHTML = '<span class="spinner"></span> Connecting...';
+
+                const authRes = await fetch('/api/auth/gmail/url');
+                const authData = await authRes.json();
+                if (!authRes.ok) throw new Error(authData.detail || 'Failed to generate auth URL');
+
+                btn.innerHTML = 'Redirecting to Google...';
+                setTimeout(() => { window.location.href = authData.auth_url; }, 400);
+
+            } catch (err) {
+                showError('Error: ' + err.message);
+                btn.disabled = false;
+                btn.innerHTML = 'Connect to Gmail';
+            }
+        }
+
+        window.addEventListener('load', async () => {
+            try {
+                const res = await fetch('/api/setup-status');
+                const status = await res.json();
+                if (status.is_setup) window.location.href = '/';
+            } catch (e) {}
+        });
+    </script>
+</body>
+</html>

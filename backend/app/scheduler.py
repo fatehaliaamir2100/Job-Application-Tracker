@@ -60,6 +60,15 @@ class EmailSyncScheduler:
                 processed_count = 0
                 new_applications = 0
                 updated_applications = 0
+                processed_threads_in_batch = set()
+
+                def naive_utc(dt):
+                    if dt is None:
+                        return None
+                    if dt.tzinfo is not None:
+                        from datetime import timezone
+                        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+                    return dt
                 
                 for email in emails:
                     # Check if already processed
@@ -68,6 +77,16 @@ class EmailSyncScheduler:
                     ).first()
                     
                     if existing_log:
+                        continue
+                    
+                    # Skip duplicate threads within this batch
+                    if email['thread_id'] in processed_threads_in_batch:
+                        log = EmailProcessingLog(
+                            gmail_message_id=email['message_id'],
+                            classification='DUPLICATE_THREAD'
+                        )
+                        db.add(log)
+                        processed_count += 1
                         continue
                     
                     # Classify email
@@ -96,17 +115,20 @@ class EmailSyncScheduler:
                             'OFFER': 4,
                             'REJECTION': 3,
                             'GHOSTED': 0,
+                            'JOB_ALERT': 0,
                             'OTHER': 0
                         }
                         
                         new_priority = status_priority.get(classification['status'], 0)
                         old_priority = status_priority.get(existing_app.status, 0)
                         
-                        if new_priority > old_priority or email['date'] > existing_app.last_email_date:
+                        if new_priority > old_priority or naive_utc(email['date']) > (existing_app.last_email_date or datetime.min):
                             existing_app.status = classification['status']
                             existing_app.confidence = classification['confidence']
                             existing_app.last_email_subject = email['subject']
+                            existing_app.last_email_from = email.get('from', '')
                             existing_app.last_email_snippet = email['snippet']
+                            existing_app.last_email_body = email.get('body', '')
                             existing_app.last_email_date = email['date']
                             existing_app.updated_at = datetime.utcnow()
                             
@@ -126,8 +148,10 @@ class EmailSyncScheduler:
                             gmail_thread_id=email['thread_id'],
                             gmail_message_ids=json.dumps([email['message_id']]),
                             last_email_subject=email['subject'],
+                            last_email_from=email.get('from', ''),
                             last_email_snippet=email['snippet'],
-                            last_email_date=email['date']
+                            last_email_body=email.get('body', ''),
+                            last_email_date=naive_utc(email['date'])
                         )
                         db.add(new_app)
                         new_applications += 1
@@ -139,6 +163,7 @@ class EmailSyncScheduler:
                     )
                     db.add(log)
                     processed_count += 1
+                    processed_threads_in_batch.add(email['thread_id'])
                 
                 db.commit()
                 

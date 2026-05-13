@@ -50,3 +50,10 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Docker data volume (keep the directory, ignore its contents)
+data/*
+!data/.gitkeep
+
+# OAuth flow temp files
+flow_*.json
